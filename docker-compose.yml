@@ -1,0 +1,57 @@
+version: '3.9'
+
+services:
+    tasks_server:
+        container_name: tasks_server
+        image: tasks_server
+        build:
+            context: ./services/server/main
+            # dockerfile: Dockerfile-dev  # only for dev mode(backend)
+        environment:
+            - DATABASE_DIALECT=${TASK_DATABASE_DIALECT}
+            - DATABASE_HOSTNAME=${TASK_DATABASE_HOSTNAME}
+            - DATABASE_NAME=${TASK_DATABASE_NAME}
+            - DATABASE_PASSWORD=${TASK_DATABASE_PASSWORD}
+            - DATABASE_PORT=${TASK_DATABASE_PORT}
+            - DATABASE_USERNAME=${TASK_DATABASE_USERNAME}
+        ports:
+            - "${TASK_PORT}:5000"
+        # volumes:
+        #     - "./services/server/main:/services/server/main"  # only for dev mode(backend)
+        depends_on:
+            - tasks_database
+
+    tasks_database:
+        container_name: tasks_database
+        image: postgres
+        environment:
+            - POSTGRES_DB=${TASK_DATABASE_NAME}
+            - POSTGRES_USER=${TASK_DATABASE_USERNAME}
+            - POSTGRES_PASSWORD=${TASK_DATABASE_PASSWORD}
+            - PGDATA=/data/task-manager/tasks_database
+        ports:
+            - ${TASK_DATABASE_PORT}:5432
+        volumes:
+            - tasks_database_data:/data/task-manager/tasks_database
+
+    pgadmin:
+        container_name: task_manager_postgres_admin
+        image: "dpage/pgadmin4:6.14"
+        environment:
+            PGADMIN_DEFAULT_EMAIL: mik.myk2015@gmail.com
+            PGADMIN_DEFAULT_PASSWORD: admin
+            PGADMIN_CONFIG_SERVER_MODE: "False"
+            PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
+        volumes:
+            - pgadmin:/var/lib/pgadmin
+            - ./docker_pgadmin_servers.json:/pgadmin4/servers.json
+        ports:
+            - "15001:80"
+        entrypoint:
+            - "/bin/sh"
+            - "-c"
+            - "/bin/echo 'postgres:5432:*:postgres:password' > /tmp/pgpassfile && chmod 600 /tmp/pgpassfile && /entrypoint.sh"
+
+volumes:
+    tasks_database_data:
+    pgadmin:
